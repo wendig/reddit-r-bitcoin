@@ -19,6 +19,8 @@ from keras.utils import to_categorical
 from keras.layers import Dense, Input, Flatten
 from keras.layers import Conv1D, MaxPooling1D, Embedding
 from keras.models import Model
+from keras.layers import LSTM
+
 
 print('reading csv files...')
 df_sub = pd.read_csv('submission.csv')
@@ -163,26 +165,36 @@ embedding_layer = Embedding(num_words,
                             trainable=False)
 
 print('Training model.')
+# Convolution
+kernel_size = 5
+filters = 64
+pool_size = 4
+
+# LSTM
+lstm_output_size = 70
+
 
 # train a 1D convnet with global maxpooling
 sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
 embedded_sequences = embedding_layer(sequence_input)
 x = Conv1D(128, 5, activation='relu')(embedded_sequences)
 x = MaxPooling1D(5)(x)
-x = Conv1D(128, 5, activation='relu')(x)
-x = MaxPooling1D(5)(x)
-x = Conv1D(128, 5, activation='relu')(x)
-x = MaxPooling1D(35)(x)
-x = Flatten()(x)
-x = Dense(128, activation='relu')(x)
+x = Conv1D(filters,
+                 kernel_size,
+                 padding='valid',
+                 activation='relu',
+                 strides=1)(x)
+x = MaxPooling1D(pool_size=pool_size)(x)
+x = LSTM(64)(x)
+x = Dense(128,activation='relu')(x)
 preds = Dense(1)(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='mean_squared_error',
-              optimizer='adam',
+              optimizer='sgd',
               metrics=['acc'])
 
 model.fit(x_train, y_train,
           batch_size=128,
-          epochs=10,
+          epochs=1000,
           validation_data=(x_val, y_val))
