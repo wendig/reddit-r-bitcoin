@@ -2,7 +2,7 @@
 data scraping and machine learning project
 
 # summary
-downloader.py pulls submissions from the r/bitcoin subreddit.
+downloader.py pulls submissions from the r/bitcoin subreddit. \n
 process_data.py formats the data and trains LSTM model
 
 # requirements
