@@ -9,8 +9,9 @@ import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import nltk
+from nltk import word_tokenize
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -27,14 +28,21 @@ print('done reading')
 frames = [df_sub,df_com]
 df = pd.concat(frames)
 
+# transform score between 0..1
+max_value = df['score'].max()
+min_value = df['score'].min()
+df['score'] = (df['score'] - min_value) / (max_value - min_value)
+
+
 # remove stopwords
+# nltk.download() -> install 'punkt'
 stop_words = set(stopwords.words('english'))
 
 for index, row in df.iterrows():
     # create list of words
     word_tokens = word_tokenize(row['text'])
     # keep only the 'relevant' words
-    filtered_sentence = [w for w in word_tokens if not w in stop_words]
+    filtered_sentence = [w.lower() for w in word_tokens if not w.lower() in stop_words]
     row['text'] = " ".join(filtered_sentence)
 
 #drop rows containing very long and short text  
@@ -73,9 +81,11 @@ plt.show()
 #https://medium.com/@thoszymkowiak/how-to-implement-sentiment-analysis-using-word-embedding-and-convolutional-neural-networks-on-keras-163197aef623
 #create a list of words
 
+#keras tutorial on werd embeddings:
+#https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
 
 embeddings_index = {}
-f = open(os.path.join(' ', 'glove.6B.100d.txt'))
+f = open('glove.6B.100d.txt',encoding="utf8")
 for line in f:
     values = line.split()
     word = values[0]
@@ -95,8 +105,11 @@ labels = []  # list of label ids
 for index, row in df.iterrows():
     texts.append( row['text'] )
     labels.append( row['score'] )
-
-
+print('-----------')
+print('example')
+print(texts[10])
+print(labels[10])
+print('-----------')
 
 tokenizer = Tokenizer(nb_words=MAX_NB_WORDS)
 tokenizer.fit_on_texts(texts)
@@ -105,9 +118,13 @@ sequences = tokenizer.texts_to_sequences(texts)
 word_index = tokenizer.word_index
 print('Found %s unique tokens.' % len(word_index))
 
-data = pad_sequences(sequences, maxlen=Max)
+data = pad_sequences(sequences, maxlen=MAX_SEQUENCE_LENGTH)
 
-labels = to_categorical(np.asarray(labels))
+#if score would be categorical
+#labels = to_categorical(np.asarray(labels))
+labels = np.asarray(labels)
+
+
 print('Shape of data tensor:', data.shape)
 print('Shape of label tensor:', labels.shape)
 
@@ -161,8 +178,8 @@ x = Dense(128, activation='relu')(x)
 preds = Dense(1)(x)
 
 model = Model(sequence_input, preds)
-model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
+model.compile(loss='mean_squared_error',
+              optimizer='adam',
               metrics=['acc'])
 
 model.fit(x_train, y_train,
