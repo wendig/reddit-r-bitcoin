@@ -185,16 +185,16 @@ x = Conv1D(filters,
                  activation='relu',
                  strides=1)(x)
 x = MaxPooling1D(pool_size=pool_size)(x)
+x = LSTM(64,return_sequences=True)(x)
 x = LSTM(64)(x)
 x = Dense(128,activation='relu')(x)
 preds = Dense(1)(x)
 
 model = Model(sequence_input, preds)
 model.compile(loss='mean_squared_error',
-              optimizer='sgd',
-              metrics=['acc'])
+              optimizer='adam')
 
 model.fit(x_train, y_train,
           batch_size=128,
-          epochs=1000,
+          epochs=100,
           validation_data=(x_val, y_val))
